@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{# maths.html - every Discrete Maths topic, in the order a result is reasoned about #}
+{% block title %}Discrete Maths{% endblock %}
+{% macro tf(v) %}<span class="tf {{ 't' if v else 'f' }}">{{ 'T' if v else 'F' }}</span>{% endmacro %}
+{% macro yes(ok) %}<span class="badge {{ 'normal' if ok else 'critical' }}">{{ 'yes' if ok else 'no' }}</span>{% endmacro %}
+{% block content %}
+{% if not patients %}
+  <section class="card"><p class="hint">No data yet. Load the demo data on the Home page.</p></section>
+{% else %}
+<section class="card">
+  <h2>1–2. Logic and quantifiers <small>status + findings by modus ponens</small></h2>
+  <p class="hint">Atom p<sub>a</sub> = “analyte a is ABNORMAL or worse” (untested = F).
+    Over the tested analytes: ∃a C(a) → CRITICAL, else ∃a A(a) → ABNORMAL, else ∀a N(a) → NORMAL.</p>
+  <table><tr><th>Patient</th><th>Tested</th><th>Status</th><th>True atoms</th><th>Inferred findings</th></tr>
+    {% for s in summary %}
+      <tr><td>{{ s.patient }}</td><td>{{ s.tested }}/10</td>
+          <td><span class="badge {{ s.status|lower }}">{{ s.status }}</span></td>
+          <td>{{ s.true|join(', ') or '—' }}</td>
+          <td>{% for f in s.findings %}<div>{{ f.name }} <small>→ {{ f.advice }}</small></div>{% else %}—{% endfor %}</td></tr>
+    {% endfor %}</table>
+</section>
+
+<section class="card">
+  <h2>1 + 3. Rules, truth tables and sets <small>∧ = ∩, ∨ = ∪, ¬ = complement</small></h2>
+  <p class="hint">De Morgan's law ¬(p ∧ q) ≡ ¬p ∨ ¬q checked on all 4 rows: {{ yes(de_morgan) }}</p>
+  <div class="grid">
+  {% for r in rules %}
+    <div class="mini">
+      <h3>{{ r.name }}</h3>
+      <p class="formula">{{ to_text(r.formula) }} → finding</p>
+      <table class="tt"><tr>{% for n in r.names %}<th>{{ n }}</th>{% endfor %}<th>result</th></tr>
+        {% for values, res in r.rows %}<tr>{% for v in values %}<td>{{ tf(v) }}</td>{% endfor %}<td>{{ tf(res) }}</td></tr>{% endfor %}
+      </table>
+      <p><b>Matching set:</b> { {{ r.patients|join(', ') }} }{% if not r.patients %} = ∅{% endif %}</p>
+    </div>
+  {% endfor %}
+  </div>
+  <h3>Sets S<sub>a</sub> (patients with analyte a abnormal)</h3>
+  <table><tr><th>Set</th><th>Members</th><th>|S|</th></tr>
+    {% for a, m in sets.items() %}<tr><td>S<sub>{{ a }}</sub></td><td>{ {{ m|join(', ') }} }</td><td>{{ m|length }}</td></tr>{% endfor %}
+  </table>
+</section>
+
+<section class="card">
+  <h2>4. Equivalence relation <small>x R y ⇔ same severity profile</small></h2>
+  <p>{% for k, v in eq.items() %}{{ k }} {{ yes(v) }} {% endfor %}→ R is an <b>equivalence relation</b>.</p>
+  <div class="scroll">
+  <table class="matrix"><tr><th>M<sub>R</sub></th>{% for p in patients %}<th>{{ p }}</th>{% endfor %}</tr>
+    {% for p in patients %}<tr><th>{{ p }}</th>{% for v in M[loop.index0] %}<td class="{{ 'one' if v }}">{{ v }}</td>{% endfor %}</tr>{% endfor %}
+  </table>
+  </div>
+  <h3>Equivalence classes (a partition of the patients)</h3>
+  <table><tr><th>Class</th><th>Profile</th><th>Patients</th></tr>
+    {% for vec, ps in classes %}<tr><td><b>{{ label[vec] }}</b></td><td>{{ describe(vec) }}</td><td>{{ ps|join(', ') }}</td></tr>{% endfor %}
+  </table>
+</section>
+
+<section class="card">
+  <h2>5. Poset and Hasse diagram <small>u ≤ v ⇔ v is at least as bad in every test</small></h2>
+  <p>{% for k, v in po.items() %}{{ k }} {{ yes(v) }} {% endfor %}→ a <b>partial order</b> (some classes cannot be compared).</p>
+  <div class="hasse">
+    <svg viewBox="0 0 680 {{ svg_height }}" role="img" aria-label="Hasse diagram, worst classes at the top">
+      {% for u, v in edges %}<line x1="{{ pos[u][0] }}" y1="{{ pos[u][1] }}" x2="{{ pos[v][0] }}" y2="{{ pos[v][1] }}"/>{% endfor %}
+      {% for n, (x, y) in pos.items() %}
+        <g class="{{ 'max' if n in maximal }}">
+          <circle cx="{{ x }}" cy="{{ y }}" r="24"/>
+          <text x="{{ x }}" y="{{ y + 5 }}">{{ label[n] }}</text>
+          <text class="sub" x="{{ x }}" y="{{ y + 42 }}">{{ members[n]|join(', ') }}</text>
+        </g>
+      {% endfor %}
+    </svg>
+  </div>
+  <p><b>Maximal (red, review first):</b> {% for n in maximal %}{{ label[n] }} {% endfor %}</p>
+  <p><b>Review order</b> (topological sort):
+    {% for n in order %}{{ label[n] }} ({{ members[n]|join(', ') }}){% if not loop.last %} → {% endif %}{% endfor %}</p>
+</section>
+
+<section class="card">
+  <h2>6. Function and pigeonhole <small>h : Patient IDs → {0 … {{ fn.m - 1 }}}</small></h2>
+  <p class="formula">h(ID) = (Σ ord(c<sub>i</sub>)·31<sup>L−1−i</sup> mod 2<sup>32</sup>) mod {{ fn.m }}</p>
+  <p>Injective {{ yes(fn.injective) }} · Surjective {{ yes(fn.surjective) }}</p>
+  <table><tr><th>Patient ID</th><th>h(ID)</th></tr>
+    {% for k, b in fn.mapping %}<tr><td>{{ k }}</td><td>{{ b }}</td></tr>{% endfor %}</table>
+  {% for b, ks in fn.collisions.items() %}<p>Collision in bucket {{ b }}: {{ ks|join(', ') }}</p>{% endfor %}
+  <p>n = {{ fn.n }} IDs, m = {{ fn.m }} buckets.
+    {% if fn.forced %}n &gt; m, so a collision is <b>guaranteed</b>.{% else %}n ≤ m, so no collision is forced (the table grows at load 0.75).{% endif %}
+    Generalised pigeonhole: some bucket holds ≥ ⌈n/m⌉ = <b>{{ fn.at_least }}</b>; fullest bucket holds <b>{{ fn.fullest }}</b>.</p>
+</section>
+{% endif %}
+{% endblock %}

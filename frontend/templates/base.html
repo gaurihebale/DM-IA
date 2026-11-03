@@ -1,0 +1,40 @@
+<!doctype html>
+{# base.html - layout shared by all 3 pages (Jinja template inheritance).
+   sticker(name) draws one sticker from static/stickers.svg. No JavaScript. #}
+{% macro sticker(name, cls="") -%}
+  <svg class="sticker {{ cls }}" aria-hidden="true"><use href="{{ url_for('static', filename='stickers.svg') }}#{{ name }}"/></svg>
+{%- endmacro %}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} · UroLogic</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="top">
+    {{ sticker("test-tube") }}
+    <div>
+      <h1>UroLogic</h1>
+      <p>Smart urine-strip screening with Discrete Mathematics · KJS-HC-03</p>
+    </div>
+    {{ sticker("dna") }}
+  </header>
+  <nav aria-label="Main">
+    {% for ep, name in [("home", "Home"), ("records", "Records & Alerts"), ("maths", "Discrete Maths")] %}
+      <a href="{{ url_for(ep) }}" {% if request.endpoint == ep %}class="active" aria-current="page"{% endif %}>{{ name }}</a>
+    {% endfor %}
+  </nav>
+  <main>
+    {% for cat, msg in get_flashed_messages(with_categories=true) %}
+      <p class="flash {{ cat }}" role="status">{{ msg }}</p>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    {{ sticker("microscope", "small") }}
+    Simulation thresholds for a student project, not clinical advice. Flagged results need a clinician.
+    {{ sticker("kidney", "small") }}
+  </footer>
+</body>
+</html>

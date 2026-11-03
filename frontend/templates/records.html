@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{# records.html - Data Structures: hash table search, BST sorted values, max-heap alerts #}
+{% block title %}Records & Alerts{% endblock %}
+{% macro row(r) -%}
+  <tr><td>{{ r.patient }}</td><td>{{ r.analyte }}</td><td>{{ '%g' % r.value }} {{ r.unit }}</td>
+      <td><span class="badge {{ r.severity|lower }}">{{ r.severity }}</span></td><td>{{ r.time }}</td></tr>
+{%- endmacro %}
+{% set head %}<tr><th>Patient</th><th>Analyte</th><th>Value</th><th>Level</th><th>Time</th></tr>{% endset %}
+{% block content %}
+<section class="card">
+  <h2>Alert queue <small>max-heap: CRITICAL first, then earliest</small></h2>
+  <form method="post"><button class="btn" {% if not pending %}disabled{% endif %}>Review top alert</button></form>
+  {% if pending %}<table>{{ head }}{% for r in pending %}{{ row(r) }}{% endfor %}</table>
+  {% else %}<p class="hint">No alerts waiting.</p>{% endif %}
+  {% if reviewed %}<h3>Reviewed</h3><table>{{ head }}{% for r in reviewed %}{{ row(r) }}{% endfor %}</table>{% endif %}
+</section>
+
+<section class="card">
+  <h2>Search a patient <small>hash table, O(1) average</small></h2>
+  <form method="get" class="form inline">
+    <input name="patient" placeholder="PT-103" value="{{ query }}" aria-label="Patient ID">
+    <input type="hidden" name="analyte" value="{{ analyte }}">
+    <button class="btn">Search</button>
+  </form>
+  {% if query %}
+    {% if found %}<table>{{ head }}{% for r in found %}{{ row(r) }}{% endfor %}</table>
+    {% else %}<p class="hint">No patient {{ query }}.</p>{% endif %}
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Sorted values <small>BST inorder traversal</small></h2>
+  <form method="get" class="form inline">
+    <select name="analyte" aria-label="Analyte">
+      {% for a in ANALYTES %}<option {% if a == analyte %}selected{% endif %}>{{ a }}</option>{% endfor %}
+    </select>
+    <input type="hidden" name="patient" value="{{ query }}">
+    <button class="btn">Show</button>
+  </form>
+  {% if sorted_values %}
+    <p>Lowest <b>{{ '%g' % lo.value }}</b> ({{ lo.patient }}) · Highest <b>{{ '%g' % hi.value }}</b> ({{ hi.patient }})</p>
+    <table>{{ head }}{% for r in sorted_values %}{{ row(r) }}{% endfor %}</table>
+  {% else %}<p class="hint">No {{ analyte }} values yet.</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>All results</h2>
+  {% if records %}<table>{{ head }}{% for r in records %}{{ row(r) }}{% endfor %}</table>
+  {% else %}<p class="hint">Nothing stored yet. Load the demo data on the Home page.</p>{% endif %}
+</section>
+{% endblock %}

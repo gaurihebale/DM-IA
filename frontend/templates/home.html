@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{# home.html - problem, counters, the "add a result" form and the thresholds #}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="card hero">
+  <svg class="sticker big" aria-hidden="true"><use href="{{ url_for('static', filename='stickers.svg') }}#drop"/></svg>
+  <div>
+    <h2>Problem</h2>
+    <p>Urine strips are read by eye against a colour chart, so two people can read the same strip
+      differently. The KJS-HC-03 device turns the 10 pads into exact numbers. UroLogic decides, with
+      Discrete Mathematics, which results matter, what they may indicate and who a clinician sees first.</p>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="stat"><span>{{ n_patients }}</span>patients</div>
+  <div class="stat"><span>{{ n_records }}</span>results</div>
+  <div class="stat"><span>{{ n_alerts }}</span>alerts waiting</div>
+</section>
+
+<section class="card">
+  <h2>Add a test result</h2>
+  <form method="post" class="form inline">
+    <input name="patient" placeholder="Patient ID, e.g. PT-110" required maxlength="20" aria-label="Patient ID">
+    <input name="analyte" placeholder="Analyte: glucose, glu, sg, ph…" required list="analytes" aria-label="Analyte">
+    <datalist id="analytes">{% for a in ANALYTES %}<option value="{{ a }}">{% endfor %}</datalist>
+    <input name="value" type="number" step="any" required placeholder="Value" aria-label="Value">
+    <button class="btn">Save</button>
+  </form>
+  <div class="row">
+    <form method="post" action="{{ url_for('demo') }}"><button class="btn ghost">Load demo data</button></form>
+    <form method="post" action="{{ url_for('reset') }}"><button class="btn danger">Reset all data</button></form>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Threshold rule <small>NORMAL &lt; ABNORMAL &lt; CRITICAL is a total order</small></h2>
+  <table>
+    <tr><th>Analyte</th><th>Unit</th><th>Normal range</th><th>CRITICAL when</th><th>Accepted values</th></tr>
+    {% for a, (unit, nlo, nhi, clo, chi, mn, mx) in ANALYTES.items() %}
+      <tr><td>{{ a }}</td><td>{{ unit }}</td>
+          <td>{% if nlo %}{{ nlo }} to &lt; {{ nhi }}{% else %}&lt; {{ nhi }}{% endif %}</td>
+          <td>{% if clo %}&lt; {{ clo }} or {% endif %}≥ {{ chi }}</td>
+          <td>{{ mn }} – {{ mx }}</td></tr>
+    {% endfor %}
+  </table>
+  <p class="hint">Anything outside the normal range but not critical is ABNORMAL.</p>
+</section>
+{% endblock %}
